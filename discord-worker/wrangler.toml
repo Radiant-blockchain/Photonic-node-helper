@@ -1,0 +1,19 @@
+name = "avian-node-verify"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Custom domain (avn.network must be managed in this Cloudflare account)
+routes = [
+  { pattern = "verify.avn.network", custom_domain = true }
+]
+
+# Secrets (set via `wrangler secret put <NAME>`):
+# - DISCORD_BOT_TOKEN
+# - DISCORD_GUILD_ID  
+# - DISCORD_ROLE_ID
+# - VERIFY_SECRET
+
+# Optional: KV namespace for tracking verifications
+# [[kv_namespaces]]
+# binding = "VERIFICATIONS"
+# id = "your-kv-namespace-id"

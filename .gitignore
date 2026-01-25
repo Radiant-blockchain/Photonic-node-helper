@@ -1,0 +1,23 @@
+node_modules
+dist
+.env
+data
+*.log
+.DS_Store
+Thumbs.db
+
+# Local aviand binaries (used by ./aviand Docker build)
+aviand/aviand
+aviand/aviand.exe
+
+# Cloudflare Wrangler
+discord-worker/.wrangler/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Desktop.ini

@@ -1,0 +1,63 @@
+services:
+  aviand:
+    # Build from local ./aviand folder.
+    # Place a Linux "aviand" binary at ./aviand/aviand (relative to repo root).
+    build: ./aviand
+    image: avian/aviand:local
+    container_name: aviand
+    restart: unless-stopped
+    # Give aviand enough time to flush databases on shutdown (default is 10s)
+    stop_grace_period: 60s
+    env_file: .env
+    command: >-
+      -datadir=/data
+      -server=1
+      -listen=1
+      -txindex=1
+      -upnp=${AVIAN_UPNP:-0}
+      -disablewallet=${AVIAN_DISABLE_WALLET:-1}
+      -rpcbind=0.0.0.0
+      -rpcallowip=0.0.0.0/0
+      -rpcuser=${AVIAN_RPC_USER:-avianrpc}
+      -rpcpassword=${AVIAN_RPC_PASS:-change_me}
+      -rpcport=${AVIAN_RPC_PORT:-7896}
+    volumes:
+      - ./data:/data
+    ports:
+      # P2P
+      - "7895:7895"
+      # RPC - NOT exposed externally for security.
+      # Backend connects via Docker internal network.
+      # Uncomment only if you need direct RPC access from host:
+      # - "127.0.0.1:7896:7896"
+
+  backend:
+    build: ./backend
+    container_name: avian-node-helper-backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Backend should talk to container name "aviand"
+      - AVIAN_RPC_HOST=aviand
+    ports:
+      - "3001:3001"
+    depends_on:
+      - aviand
+    volumes:
+      - ./scripts:/app/scripts:ro
+      # OPTIONAL: allow backend to read the node's debug.log
+      - ./data:/data:ro
+      # OPTIONAL: enable docker control by mounting the Docker socket:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE: http://localhost:3001
+    container_name: avian-node-helper-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend

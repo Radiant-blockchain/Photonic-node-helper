@@ -1,0 +1,4 @@
+# Keep build context small
+*
+!Dockerfile
+!aviand
