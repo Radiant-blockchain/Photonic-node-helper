@@ -11,7 +11,7 @@ A simple web UI for running and monitoring an **Avian blockchain node** using Do
 - 🔧 **RPC commands** — run whitelisted commands from the UI
 - 🐳 **Docker control** — start/stop/restart the node (optional)
 - 📜 **Debug log viewer** — tail the node's log in real-time (optional)
-- 🎖️ **Discord role** — claim "Node Operator" role after 7 days uptime (optional)
+- 🎖️ **Discord roles** — claim "Node Operator" (7d) and "Elite Node Operator" (90d) roles
 
 ---
 
@@ -153,23 +153,35 @@ docker compose up --build -d
 
 ---
 
-## Discord Node Operator Role
+## Discord Node Operator Roles
 
-Node operators can claim a Discord role after running a synced node for 7 days.
+Node operators can claim Discord roles based on uptime:
+
+| Role                    | Requirement                  |
+| ----------------------- | ---------------------------- |
+| **Node Operator**       | Synced node + 7 days uptime  |
+| **Elite Node Operator** | Synced node + 90 days uptime |
+
+Users keep both roles as they progress — they're cumulative achievements!
 
 ### Setup (Server Admins)
 
 1. Create a Discord bot at [Discord Developer Portal](https://discord.com/developers/applications)
 2. Enable "Manage Roles" permission and add bot to your server
-3. Deploy the verification worker (see `discord-worker/README.md`)
-4. Set secrets in your worker:
+3. Create the roles in Discord:
+   - "Node Operator" (for 7-day operators)
+   - "Elite Node Operator" (for 90-day veterans)
+   - **Important:** Bot's role must be above both roles in the hierarchy
+4. Deploy the verification worker (see `discord-worker/README.md`)
+5. Set secrets in your worker:
    ```bash
    wrangler secret put DISCORD_BOT_TOKEN
    wrangler secret put DISCORD_GUILD_ID
-   wrangler secret put DISCORD_ROLE_ID
+   wrangler secret put DISCORD_ROLE_ID           # Node Operator role ID
+   wrangler secret put DISCORD_ROLE_ID_ELITE     # Elite Node Operator role ID
    wrangler secret put VERIFY_SECRET
    ```
-5. Add to your `.env`:
+6. Add to your `.env`:
    ```env
    DISCORD_VERIFY_URL=https://your-worker.workers.dev/verify
    DISCORD_VERIFY_SECRET=your_shared_secret
@@ -177,9 +189,12 @@ Node operators can claim a Discord role after running a synced node for 7 days.
 
 ### Usage (Node Operators)
 
-1. Run your node for 7+ days (synced)
-2. Get your Discord User ID (Enable Developer Mode → Right-click name → Copy User ID)
-3. Enter your ID in the UI and click "Verify & Claim Role"
+1. Run your node (synced) for 7+ days → claim **Node Operator** role
+2. Keep running for 90+ days → claim **Elite Node Operator** role
+3. Get your Discord User ID (Enable Developer Mode → Right-click name → Copy User ID)
+4. Enter your ID in the UI and click "Verify & Claim"
+
+> 💡 At 90 days, you'll receive both roles if you don't already have them!
 
 ---
 

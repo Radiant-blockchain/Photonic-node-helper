@@ -92,13 +92,16 @@ export function streamDebugLog(
 // Discord verification
 export type DiscordEligibility = {
   eligible: boolean;
+  eligibleElite: boolean;
   synced: boolean;
   blocks: number;
   headers: number;
   uptime: number;
   requiredUptime: number;
+  requiredUptimeElite: number;
   uptimeDays: number;
   requiredDays: number;
+  requiredDaysElite: number;
   configured: boolean;
 };
 
@@ -107,6 +110,21 @@ export async function getDiscordEligibility(): Promise<DiscordEligibility> {
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(data?.error ?? `discord HTTP ${r.status}`);
   return data as DiscordEligibility;
+}
+
+export type DiscordRoleCheck = {
+  hasRole: boolean;
+  hasEliteRole: boolean;
+  inServer: boolean;
+  configured: boolean;
+  message?: string;
+};
+
+export async function checkDiscordRole(discordId: string): Promise<DiscordRoleCheck> {
+  const r = await fetch(`${API_BASE}/discord/check-role?discordId=${encodeURIComponent(discordId)}`);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data?.error ?? `check-role HTTP ${r.status}`);
+  return data as DiscordRoleCheck;
 }
 
 export async function verifyDiscord(discordId: string): Promise<{ success: boolean; message: string }> {

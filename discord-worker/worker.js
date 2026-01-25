@@ -4,13 +4,15 @@
  * Deploy to Cloudflare Workers. Set these secrets:
  *   - DISCORD_BOT_TOKEN: Your Discord bot token
  *   - DISCORD_GUILD_ID: 904209882947932160
- *   - DISCORD_ROLE_ID: The "Node Operator" role ID
+ *   - DISCORD_ROLE_ID: The "Node Operator" role ID (7 days)
+ *   - DISCORD_ROLE_ID_ELITE: The "Elite Node Operator" role ID (90 days)
  *   - VERIFY_SECRET: A shared secret for HMAC verification
  *
  * Endpoint: POST /verify
  */
 
 const REQUIRED_UPTIME_SECONDS = 7 * 24 * 60 * 60; // 7 days
+const REQUIRED_UPTIME_ELITE = 90 * 24 * 60 * 60; // 90 days
 
 export default {
   async fetch(request, env, ctx) {
@@ -27,6 +29,10 @@ export default {
       return handleVerify(request, env);
     }
 
+    if (url.pathname === "/check-role" && request.method === "GET") {
+      return handleCheckRole(url, env);
+    }
+
     if (url.pathname === "/status" && request.method === "GET") {
       return jsonResponse({ ok: true, service: "avian-node-verify" });
     }
@@ -34,6 +40,36 @@ export default {
     return jsonResponse({ error: "not_found" }, 404);
   },
 };
+
+async function handleCheckRole(url, env) {
+  const discordId = url.searchParams.get("discordId");
+
+  if (!discordId || !/^\d{17,20}$/.test(discordId)) {
+    return jsonResponse({ error: "invalid_discord_id" }, 400);
+  }
+
+  const roles = await checkUserRoles(env, discordId);
+
+  if (roles === null) {
+    return jsonResponse({
+      hasRole: false,
+      hasEliteRole: false,
+      inServer: false,
+      message: "User not found in Discord server",
+    });
+  }
+
+  return jsonResponse({
+    hasRole: roles.hasRole,
+    hasEliteRole: roles.hasEliteRole,
+    inServer: true,
+    message: roles.hasEliteRole
+      ? "User has Elite Node Operator role"
+      : roles.hasRole
+        ? "User has Node Operator role"
+        : "User does not have any Node Operator roles",
+  });
+}
 
 async function handleVerify(request, env) {
   try {
@@ -87,7 +123,11 @@ async function handleVerify(request, env) {
       );
     }
 
-    if (uptime < REQUIRED_UPTIME_SECONDS) {
+    // Determine which tier(s) user is eligible for
+    const eligibleForBasic = uptime >= REQUIRED_UPTIME_SECONDS;
+    const eligibleForElite = uptime >= REQUIRED_UPTIME_ELITE;
+
+    if (!eligibleForBasic) {
       const daysNeeded = Math.ceil((REQUIRED_UPTIME_SECONDS - uptime) / 86400);
       return jsonResponse(
         {
@@ -106,13 +146,72 @@ async function handleVerify(request, env) {
     //   return jsonResponse({ error: "block_mismatch" }, 400);
     // }
 
-    // Assign Discord role
-    const discordResult = await assignDiscordRole(env, discordId);
-    if (!discordResult.success) {
+    // Check which roles user already has
+    const currentRoles = await checkUserRoles(env, discordId);
+    if (currentRoles === null) {
+      return jsonResponse(
+        {
+          error: "user_not_found",
+          message:
+            "User not found in Discord server. Make sure you've joined the Avian Discord.",
+        },
+        404,
+      );
+    }
+
+    // Track what we'll assign
+    const rolesToAssign = [];
+    const rolesAssigned = [];
+
+    // Assign basic role if eligible and doesn't have it
+    if (eligibleForBasic && !currentRoles.hasRole) {
+      rolesToAssign.push({ id: env.DISCORD_ROLE_ID, name: "Node Operator" });
+    }
+
+    // Assign elite role if eligible, configured, and doesn't have it
+    if (
+      eligibleForElite &&
+      env.DISCORD_ROLE_ID_ELITE &&
+      !currentRoles.hasEliteRole
+    ) {
+      rolesToAssign.push({
+        id: env.DISCORD_ROLE_ID_ELITE,
+        name: "Elite Node Operator",
+      });
+    }
+
+    // If already has all eligible roles
+    if (rolesToAssign.length === 0) {
+      const hasAll =
+        currentRoles.hasEliteRole ||
+        (currentRoles.hasRole && !eligibleForElite);
+      return jsonResponse({
+        success: true,
+        message: hasAll
+          ? "You already have all eligible roles!"
+          : "You already have the Node Operator role!",
+        discordId,
+        alreadyHadRole: true,
+        hasRole: currentRoles.hasRole,
+        hasEliteRole: currentRoles.hasEliteRole,
+      });
+    }
+
+    // Assign each role
+    for (const role of rolesToAssign) {
+      const result = await assignDiscordRole(env, discordId, role.id);
+      if (result.success) {
+        rolesAssigned.push(role.name);
+      } else {
+        console.error(`Failed to assign ${role.name}:`, result.message);
+      }
+    }
+
+    if (rolesAssigned.length === 0) {
       return jsonResponse(
         {
           error: "discord_error",
-          message: discordResult.message,
+          message: "Failed to assign roles. Bot may lack permissions.",
         },
         500,
       );
@@ -123,8 +222,13 @@ async function handleVerify(request, env) {
 
     return jsonResponse({
       success: true,
-      message: "Node Operator role assigned!",
+      message: `${rolesAssigned.join(" + ")} role${rolesAssigned.length > 1 ? "s" : ""} assigned!`,
       discordId,
+      rolesAssigned,
+      hasRole: currentRoles.hasRole || rolesAssigned.includes("Node Operator"),
+      hasEliteRole:
+        currentRoles.hasEliteRole ||
+        rolesAssigned.includes("Elite Node Operator"),
     });
   } catch (e) {
     console.error("Verify error:", e);
@@ -132,8 +236,36 @@ async function handleVerify(request, env) {
   }
 }
 
-async function assignDiscordRole(env, userId) {
-  const url = `https://discord.com/api/v10/guilds/${env.DISCORD_GUILD_ID}/members/${userId}/roles/${env.DISCORD_ROLE_ID}`;
+async function checkUserRoles(env, userId) {
+  const url = `https://discord.com/api/v10/guilds/${env.DISCORD_GUILD_ID}/members/${userId}`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bot ${env.DISCORD_BOT_TOKEN}`,
+    },
+  });
+
+  if (response.status === 404) {
+    return null; // User not in server
+  }
+
+  if (!response.ok) {
+    console.error("Discord member lookup error:", response.status);
+    return { hasRole: false, hasEliteRole: false };
+  }
+
+  const member = await response.json();
+  return {
+    hasRole: member.roles?.includes(env.DISCORD_ROLE_ID) ?? false,
+    hasEliteRole: env.DISCORD_ROLE_ID_ELITE
+      ? (member.roles?.includes(env.DISCORD_ROLE_ID_ELITE) ?? false)
+      : false,
+  };
+}
+
+async function assignDiscordRole(env, userId, roleId) {
+  const url = `https://discord.com/api/v10/guilds/${env.DISCORD_GUILD_ID}/members/${userId}/roles/${roleId}`;
 
   const response = await fetch(url, {
     method: "PUT",

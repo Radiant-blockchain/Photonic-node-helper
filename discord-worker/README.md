@@ -2,6 +2,15 @@
 
 A Cloudflare Worker that verifies node operators and assigns Discord roles.
 
+## Roles
+
+| Role                    | Requirement    |
+| ----------------------- | -------------- |
+| **Node Operator**       | 7 days uptime  |
+| **Elite Node Operator** | 90 days uptime |
+
+Users accumulate both roles as they progress.
+
 ## Setup
 
 ### 1. Create Discord Bot
@@ -16,11 +25,14 @@ A Cloudflare Worker that verifies node operators and assigns Discord roles.
    - Bot Permissions: `Manage Roles`
 7. Copy the URL and open it to invite the bot to your server
 
-### 2. Get Role ID
+### 2. Create & Get Role IDs
 
-1. In Discord, enable Developer Mode (Settings → Advanced → Developer Mode)
-2. Right-click the "Node Operator" role → Copy ID
-3. **Important:** Make sure the bot's role is ABOVE "Node Operator" in the role hierarchy
+1. Create two roles in your Discord server:
+   - **Node Operator** (for 7-day operators)
+   - **Elite Node Operator** (for 90-day veterans)
+2. Enable Developer Mode (Settings → Advanced → Developer Mode)
+3. Right-click each role → Copy ID
+4. **Important:** Make sure the bot's role is ABOVE both roles in the role hierarchy
 
 ### 3. Generate Verify Secret
 
@@ -46,10 +58,13 @@ wrangler secret put DISCORD_BOT_TOKEN
 # Paste your bot token
 
 wrangler secret put DISCORD_GUILD_ID
-# Enter: 904209882947932160
+# Enter your server ID (e.g., 904209882947932160)
 
 wrangler secret put DISCORD_ROLE_ID
-# Paste the role ID from step 2
+# Paste the "Node Operator" role ID
+
+wrangler secret put DISCORD_ROLE_ID_ELITE
+# Paste the "Elite Node Operator" role ID
 
 wrangler secret put VERIFY_SECRET
 # Paste the secret from step 3
@@ -100,8 +115,11 @@ Verifies a node and assigns the Discord role.
 ```json
 {
   "success": true,
-  "message": "Node Operator role assigned!",
-  "discordId": "123456789012345678"
+  "message": "Node Operator + Elite Node Operator roles assigned!",
+  "discordId": "123456789012345678",
+  "rolesAssigned": ["Node Operator", "Elite Node Operator"],
+  "hasRole": true,
+  "hasEliteRole": true
 }
 ```
 
@@ -119,6 +137,9 @@ Verifies a node and assigns the Discord role.
 ## Requirements
 
 - Node must be **fully synced** (blocks ≥ headers - 1)
-- Node must have **7+ days uptime**
+- Node must have **7+ days uptime** for Node Operator role
+- Node must have **90+ days uptime** for Elite Node Operator role
 - User must be a **member of the Discord server**
 - Request must be signed with the shared secret
+
+> 💡 At 90 days, users automatically receive both roles if they don't already have them!

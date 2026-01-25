@@ -9,6 +9,7 @@ export function discordRouter() {
     const VERIFY_URL = process.env.DISCORD_VERIFY_URL;
     const VERIFY_SECRET = process.env.DISCORD_VERIFY_SECRET;
     const REQUIRED_UPTIME = 7 * 24 * 60 * 60; // 7 days
+    const REQUIRED_UPTIME_ELITE = 90 * 24 * 60 * 60; // 90 days
 
     // Check eligibility without verifying
     r.get("/eligibility", async (_req, res, next) => {
@@ -23,17 +24,22 @@ export function discordRouter() {
             const headers = chain?.headers ?? 0;
             const isSynced = headers > 0 && blocks >= headers - 1;
             const hasUptime = uptime >= REQUIRED_UPTIME;
+            const hasUptimeElite = uptime >= REQUIRED_UPTIME_ELITE;
             const eligible = isSynced && hasUptime;
+            const eligibleElite = isSynced && hasUptimeElite;
 
             res.json({
                 eligible,
+                eligibleElite,
                 synced: isSynced,
                 blocks,
                 headers,
                 uptime,
                 requiredUptime: REQUIRED_UPTIME,
+                requiredUptimeElite: REQUIRED_UPTIME_ELITE,
                 uptimeDays: Math.floor(uptime / 86400),
                 requiredDays: 7,
+                requiredDaysElite: 90,
                 configured: !!(VERIFY_URL && VERIFY_SECRET)
             });
         } catch (e) {
@@ -121,6 +127,41 @@ export function discordRouter() {
 
             logger.info({ discordId, blocks, uptime }, "Discord role assigned");
             res.json(result);
+
+        } catch (e) {
+            next(e);
+        }
+    });
+
+    // Check if user already has the role (no uptime/sync required)
+    r.get("/check-role", async (req, res, next) => {
+        try {
+            const discordId = req.query.discordId as string;
+
+            if (!discordId || !/^\d{17,20}$/.test(discordId)) {
+                return res.status(400).json({ error: "Invalid Discord ID format" });
+            }
+
+            if (!VERIFY_URL) {
+                return res.status(503).json({
+                    hasRole: false,
+                    configured: false,
+                    message: "Discord verification not configured"
+                });
+            }
+
+            // Call worker's check-role endpoint
+            // Use URL parsing to properly replace just the path, not hostname
+            const url = new URL(VERIFY_URL);
+            url.pathname = "/check-role";
+            url.searchParams.set("discordId", discordId);
+            const checkResponse = await fetch(url.toString());
+            const result = await checkResponse.json();
+
+            res.json({
+                ...result,
+                configured: true
+            });
 
         } catch (e) {
             next(e);

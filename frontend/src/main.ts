@@ -1,5 +1,5 @@
 import "./styles.css";
-import { API_BASE, control, getDebugLogTail, getDiscordEligibility, getStatus, rpcCall, streamDebugLog, verifyDiscord, type NodeStatus, type DiscordEligibility } from "./api";
+import { API_BASE, control, getDebugLogTail, getDiscordEligibility, checkDiscordRole, getStatus, rpcCall, streamDebugLog, verifyDiscord, type NodeStatus, type DiscordEligibility } from "./api";
 
 const el = document.querySelector<HTMLDivElement>("#app")!;;
 
@@ -68,6 +68,12 @@ const uiState = {
 let debugLogOutEl: HTMLTextAreaElement | null = null;
 let stopDebugLogStream: (() => void) | null = null;
 
+// Discord state (initialized once, not on every render)
+let discordInitialized = false;
+let discordEligibility: DiscordEligibility | null = null;
+let discordUserHasRole = false;
+let discordUserHasEliteRole = false;
+
 // Toast notifications
 function ensureToastContainer(): HTMLElement {
   let container = document.querySelector<HTMLElement>('.toast-container');
@@ -79,7 +85,7 @@ function ensureToastContainer(): HTMLElement {
   return container;
 }
 
-function toast(message: string, type: 'success' | 'error' | 'info' = 'info', duration = 3500) {
+function toast(message: string, type: 'success' | 'error' | 'info' = 'info', duration = 5000) {
   const container = ensureToastContainer();
   const toastEl = document.createElement('div');
   toastEl.className = `toast ${type}`;
@@ -221,17 +227,17 @@ function render(status: NodeStatus) {
         </div>
 
         <div class="card" style="grid-column: span 12;">
-          <h2>🎖️ Node Operator Role</h2>
+          <h2>🎖️ Node Operator Roles</h2>
           <p class="small" style="margin: 0 0 12px 0;">
-            Claim your Discord "Node Operator" role by verifying your node. Requires: synced + 7 days uptime.
+            Claim Discord roles by running your node. Node Operator (7 days) • Elite Node Operator (90 days)
           </p>
-          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
             <div style="min-width: 240px;">
               <label class="small" for="discord-id">Discord User ID</label>
               <input id="discord-id" placeholder="e.g. 123456789012345678" style="width: 100%; margin-top: 4px; box-sizing: border-box;" value="${uiState.discordId}" />
             </div>
-            <button id="discord-verify" type="button" data-variant="primary" style="white-space: nowrap;">Verify & Claim Role</button>
-            <div id="discord-status" class="small" style="align-self: center;"></div>
+            <button id="discord-verify" type="button" data-variant="primary" style="white-space: nowrap; margin-top: 18px;">Verify & Claim</button>
+            <div id="discord-status" class="small" style="margin-top: 18px;"></div>
           </div>
           <p class="small" style="margin: 10px 0 0 0; color: var(--muted);">
             <a href="https://support.discord.com/hc/en-us/articles/206346498" target="_blank" rel="noopener">How to find your Discord User ID</a>
@@ -433,13 +439,10 @@ function render(status: NodeStatus) {
     }
   };
 
-  // Discord verification
+  // Discord verification - only initialize once, not on every render
   const discordIdInput = el.querySelector<HTMLInputElement>("#discord-id");
   const discordVerifyBtn = el.querySelector<HTMLButtonElement>("#discord-verify");
   const discordStatus = el.querySelector<HTMLElement>("#discord-status");
-
-  // Store eligibility state for click handler
-  let currentEligibility: DiscordEligibility | null = null;
 
   if (discordIdInput && discordVerifyBtn && discordStatus) {
     discordIdInput.oninput = () => {
@@ -447,25 +450,117 @@ function render(status: NodeStatus) {
       localStorage.setItem("discordId", discordIdInput.value);
     };
 
-    // Check eligibility and update status text
-    getDiscordEligibility().then(elig => {
-      currentEligibility = elig;
-      if (!elig.configured) {
-        discordStatus.textContent = "⚙️ Not configured";
-        discordStatus.title = "Set DISCORD_VERIFY_URL and DISCORD_VERIFY_SECRET in .env";
-      } else if (elig.eligible) {
-        discordStatus.innerHTML = `<span style="color: var(--accent);">✓ Eligible!</span>`;
-      } else if (!elig.synced) {
-        discordStatus.textContent = "⏳ Sync first";
-      } else {
-        const daysLeft = elig.requiredDays - elig.uptimeDays;
-        discordStatus.textContent = `⏳ ${daysLeft} more day${daysLeft !== 1 ? "s" : ""} uptime needed`;
+    // Only run role check and eligibility check once on first render
+    if (!discordInitialized) {
+      discordInitialized = true;
+
+      // Check if user already has the roles (if Discord ID is saved)
+      const savedDiscordId = uiState.discordId.trim();
+      if (savedDiscordId && /^\d{17,20}$/.test(savedDiscordId)) {
+        checkDiscordRole(savedDiscordId).then(roleCheck => {
+          discordUserHasRole = roleCheck.hasRole;
+          discordUserHasEliteRole = roleCheck.hasEliteRole;
+
+          const statusEl = document.querySelector<HTMLElement>("#discord-status");
+          const btnEl = document.querySelector<HTMLButtonElement>("#discord-verify");
+
+          if (roleCheck.hasEliteRole) {
+            if (statusEl) statusEl.innerHTML = `<span style="color: var(--accent);">✓ Node Operator + Elite!</span>`;
+            if (btnEl) {
+              btnEl.textContent = "All Roles Claimed";
+              btnEl.disabled = true;
+            }
+            toast("You have both Node Operator roles!", "success");
+          } else if (roleCheck.hasRole) {
+            if (statusEl) statusEl.innerHTML = `<span style="color: var(--accent);">✓ Node Operator</span>`;
+            toast("You have the Node Operator role! Elite unlocks at 90 days.", "success");
+          } else if (roleCheck.inServer) {
+            toast("You're in the Discord server — claim your role when eligible!", "info");
+          } else {
+            toast("Join the Avian Discord server to claim your roles!", "info");
+          }
+        }).catch(() => {
+          // Ignore errors, fall back to eligibility check
+        });
       }
-    }).catch(() => {
-      discordStatus.textContent = "⚠️ Check failed";
-    });
+
+      // Check eligibility and update status text (only if role check didn't set status)
+      getDiscordEligibility().then(elig => {
+        discordEligibility = elig;
+        // Don't override if user already has elite role
+        if (discordUserHasEliteRole) return;
+
+        const statusEl = document.querySelector<HTMLElement>("#discord-status");
+        if (!statusEl) return;
+
+        // If they have basic role, show elite progress
+        if (discordUserHasRole) {
+          if (elig.eligibleElite) {
+            statusEl.innerHTML = `<span style="color: var(--accent);">✓ Node Operator</span> • <span style="color: var(--accent);">Elite ready!</span>`;
+          } else {
+            const daysLeft = elig.requiredDaysElite - elig.uptimeDays;
+            statusEl.innerHTML = `<span style="color: var(--accent);">✓ Node Operator</span> • ⏳ Elite in ${daysLeft}d`;
+          }
+          return;
+        }
+
+        if (!elig.configured) {
+          statusEl.textContent = "⚙️ Not configured";
+          statusEl.title = "Set DISCORD_VERIFY_URL and DISCORD_VERIFY_SECRET in .env";
+        } else if (elig.eligibleElite) {
+          statusEl.innerHTML = `<span style="color: var(--accent);">✓ Both roles ready!</span>`;
+        } else if (elig.eligible) {
+          const daysLeft = elig.requiredDaysElite - elig.uptimeDays;
+          statusEl.innerHTML = `<span style="color: var(--accent);">✓ Node Operator ready!</span> • Elite in ${daysLeft}d`;
+        } else if (!elig.synced) {
+          statusEl.textContent = "⏳ Sync first";
+        } else {
+          const daysLeft = elig.requiredDays - elig.uptimeDays;
+          statusEl.textContent = `⏳ Node Operator in ${daysLeft}d • Elite in ${elig.requiredDaysElite - elig.uptimeDays}d`;
+        }
+      }).catch(() => {
+        if (!discordUserHasRole) {
+          const statusEl = document.querySelector<HTMLElement>("#discord-status");
+          if (statusEl) statusEl.textContent = "⚠️ Check failed";
+        }
+      });
+    } else {
+      // On subsequent renders, restore the Discord status from state
+      if (discordUserHasEliteRole) {
+        discordStatus.innerHTML = `<span style="color: var(--accent);">✓ Node Operator + Elite!</span>`;
+        discordVerifyBtn.textContent = "All Roles Claimed";
+        discordVerifyBtn.disabled = true;
+      } else if (discordUserHasRole && discordEligibility) {
+        if (discordEligibility.eligibleElite) {
+          discordStatus.innerHTML = `<span style="color: var(--accent);">✓ Node Operator</span> • <span style="color: var(--accent);">Elite ready!</span>`;
+        } else {
+          const daysLeft = discordEligibility.requiredDaysElite - discordEligibility.uptimeDays;
+          discordStatus.innerHTML = `<span style="color: var(--accent);">✓ Node Operator</span> • ⏳ Elite in ${daysLeft}d`;
+        }
+      } else if (discordEligibility) {
+        if (!discordEligibility.configured) {
+          discordStatus.textContent = "⚙️ Not configured";
+        } else if (discordEligibility.eligibleElite) {
+          discordStatus.innerHTML = `<span style="color: var(--accent);">✓ Both roles ready!</span>`;
+        } else if (discordEligibility.eligible) {
+          const daysLeft = discordEligibility.requiredDaysElite - discordEligibility.uptimeDays;
+          discordStatus.innerHTML = `<span style="color: var(--accent);">✓ Node Operator ready!</span> • Elite in ${daysLeft}d`;
+        } else if (!discordEligibility.synced) {
+          discordStatus.textContent = "⏳ Sync first";
+        } else {
+          const daysLeft = discordEligibility.requiredDays - discordEligibility.uptimeDays;
+          discordStatus.textContent = `⏳ Node Operator in ${daysLeft}d • Elite in ${discordEligibility.requiredDaysElite - discordEligibility.uptimeDays}d`;
+        }
+      }
+    }
 
     discordVerifyBtn.onclick = async () => {
+      // Check if user has all available roles
+      if (discordUserHasEliteRole) {
+        toast("You already have all Node Operator roles!", "info");
+        return;
+      }
+
       const discordId = discordIdInput.value.trim();
       if (!discordId || !/^\d{17,20}$/.test(discordId)) {
         toast("Enter a valid Discord User ID (17-20 digits)", "error");
@@ -473,14 +568,41 @@ function render(status: NodeStatus) {
       }
 
       // Check eligibility before attempting verification
-      if (currentEligibility && !currentEligibility.eligible) {
-        if (!currentEligibility.configured) {
+      if (discordEligibility && !discordEligibility.eligible) {
+        // First check if they already have roles
+        try {
+          const roleCheck = await checkDiscordRole(discordId);
+          discordUserHasRole = roleCheck.hasRole;
+          discordUserHasEliteRole = roleCheck.hasEliteRole;
+
+          if (roleCheck.hasEliteRole) {
+            discordStatus.innerHTML = `<span style="color: var(--accent);">✓ Node Operator + Elite!</span>`;
+            discordVerifyBtn.textContent = "All Roles Claimed";
+            discordVerifyBtn.disabled = true;
+            toast("You already have all Node Operator roles!", "success");
+            return;
+          }
+          if (roleCheck.hasRole) {
+            const daysLeft = discordEligibility.requiredDaysElite - discordEligibility.uptimeDays;
+            discordStatus.innerHTML = `<span style="color: var(--accent);">✓ Node Operator</span> • ⏳ Elite in ${daysLeft}d`;
+            toast("You have Node Operator! Elite unlocks at 90 days.", "success");
+            return;
+          }
+          if (!roleCheck.inServer) {
+            toast("You must join the Avian Discord server first", "error");
+            return;
+          }
+        } catch {
+          // Continue with normal eligibility messages
+        }
+
+        if (!discordEligibility.configured) {
           toast("Discord verification not configured on this node", "error");
-        } else if (!currentEligibility.synced) {
-          toast("Node must be fully synced before claiming role", "error");
+        } else if (!discordEligibility.synced) {
+          toast("Node must be fully synced before claiming roles", "error");
         } else {
-          const daysLeft = currentEligibility.requiredDays - currentEligibility.uptimeDays;
-          toast(`Need ${daysLeft} more day${daysLeft !== 1 ? "s" : ""} of uptime (${currentEligibility.uptimeDays}/${currentEligibility.requiredDays} days)`, "error");
+          const daysLeft = discordEligibility.requiredDays - discordEligibility.uptimeDays;
+          toast(`Need ${daysLeft} more day${daysLeft !== 1 ? "s" : ""} of uptime for Node Operator`, "error");
         }
         return;
       }
@@ -490,14 +612,33 @@ function render(status: NodeStatus) {
 
       try {
         const result = await verifyDiscord(discordId);
-        toast(result.message || "Role assigned!", "success", 5000);
-        discordStatus.innerHTML = `<span style="color: var(--accent);">✓ Role assigned!</span>`;
+        toast(result.message || "Role(s) assigned!", "success", 5000);
+
+        // Update local state based on result
+        const resultAny = result as any;
+        if (resultAny.hasEliteRole) {
+          discordUserHasEliteRole = true;
+          discordUserHasRole = true;
+          discordStatus.innerHTML = `<span style="color: var(--accent);">✓ Node Operator + Elite!</span>`;
+          discordVerifyBtn.textContent = "All Roles Claimed";
+        } else if (resultAny.hasRole) {
+          discordUserHasRole = true;
+          if (discordEligibility) {
+            const daysLeft = discordEligibility.requiredDaysElite - discordEligibility.uptimeDays;
+            discordStatus.innerHTML = `<span style="color: var(--accent);">✓ Node Operator</span> • ⏳ Elite in ${daysLeft}d`;
+          } else {
+            discordStatus.innerHTML = `<span style="color: var(--accent);">✓ Node Operator</span>`;
+          }
+        } else {
+          discordStatus.innerHTML = `<span style="color: var(--accent);">✓ Role assigned!</span>`;
+          discordUserHasRole = true;
+        }
       } catch (e: any) {
         const errMsg = e?.message ?? "Verification failed";
         toast(errMsg, "error", 6000);
         discordStatus.textContent = "❌ " + errMsg;
       } finally {
-        discordVerifyBtn.disabled = false;
+        discordVerifyBtn.disabled = discordUserHasEliteRole;
       }
     };
   }
