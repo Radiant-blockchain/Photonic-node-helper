@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { createHmac } from "crypto";
-import { AvianRpcClient } from "../rpc/avianRpc.js";
+import { RadiantRpcClient } from "../rpc/radiantRpc.js";
 import { logger } from "../utils/logger.js";
 
 export function discordRouter() {
@@ -14,7 +14,7 @@ export function discordRouter() {
     // Check eligibility without verifying
     r.get("/eligibility", async (_req, res, next) => {
         try {
-            const rpc = new AvianRpcClient();
+            const rpc = new RadiantRpcClient();
             const [chain, uptime] = await Promise.all([
                 rpc.call<any>("getblockchaininfo"),
                 rpc.call<number>("uptime").catch(() => 0)
@@ -64,7 +64,7 @@ export function discordRouter() {
             }
 
             // Get node status
-            const rpc = new AvianRpcClient();
+            const rpc = new RadiantRpcClient();
             const [chain, uptime] = await Promise.all([
                 rpc.call<any>("getblockchaininfo"),
                 rpc.call<number>("uptime").catch(() => 0)

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { AvianRpcClient } from "../rpc/avianRpc.js";
+import { RadiantRpcClient } from "../rpc/radiantRpc.js";
 import { isAllowedMethod } from "../rpc/whitelist.js";
 
 const BodySchema = z.object({
@@ -10,7 +10,7 @@ const BodySchema = z.object({
 
 export function rpcRouter() {
   const r = Router();
-  const rpc = new AvianRpcClient();
+  const rpc = new RadiantRpcClient();
 
   r.post("/", async (req, res, next) => {
     try {

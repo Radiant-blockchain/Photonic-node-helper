@@ -1,13 +1,15 @@
-# Avian Node Helper
+# Radiant Node Helper
 
-A simple web UI for running and monitoring an **Avian blockchain node** using Docker.
+A simple web UI for running and monitoring a **Radiant blockchain node** using Docker.
+
+**Discord:** https://discord.gg/radiantblockchain
 
 ![Screenshot](docs/screenshot.png)
 
 ## Features
 
 - 🟢 **Live node status** — chain info, peers, mempool, uptime
-- ⛏️ **Mining info** — dual-algo (X16RT + MinotaurX) hashrate and difficulty
+- ⛏️ **Mining info** — SHA512/256 hashrate and difficulty
 - 🔧 **RPC commands** — run whitelisted commands from the UI
 - 🐳 **Docker control** — start/stop/restart the node (optional)
 - 📜 **Debug log viewer** — tail the node's log in real-time (optional)
@@ -25,20 +27,7 @@ A simple web UI for running and monitoring an **Avian blockchain node** using Do
 
 ## Quick Start
 
-### 1. Download `aviand`
-
-Download the latest **Linux** release from:  
-👉 **https://github.com/AvianNetwork/Avian/releases**
-
-Extract and copy the `aviand` binary to:
-
-```
-./aviand/aviand
-```
-
-> ⚠️ You need the **Linux** binary, not Windows — Docker runs Linux containers.
-
-### 2. Configure
+### 1. Configure
 
 Copy the example environment file:
 
@@ -56,16 +45,18 @@ copy .env.example .env
 Edit `.env` and change the RPC password:
 
 ```env
-AVIAN_RPC_PASS=your_secure_password_here
+RADIANT_RPC_PASS=your_secure_password_here
 ```
 
-### 3. Start
+### 2. Start
 
 ```bash
 docker compose up --build -d
 ```
 
-### 4. Open the UI
+> First build downloads Radiant Core v2.0.0 from GitHub releases (~1-2 min).
+
+### 3. Open the UI
 
 - **UI:** http://localhost:3000
 - **API:** http://localhost:3001/status
@@ -78,14 +69,14 @@ That's it! 🎉
 
 Edit `.env` to customize:
 
-| Variable                | Default     | Description                                              |
-| ----------------------- | ----------- | -------------------------------------------------------- |
-| `AVIAN_RPC_USER`        | `avianrpc`  | RPC username                                             |
-| `AVIAN_RPC_PASS`        | `change_me` | RPC password (**change this!**)                          |
-| `AVIAN_UPNP`            | `0`         | Set to `1` for automatic port forwarding (inbound peers) |
-| `AVIAN_DISABLE_WALLET`  | `1`         | Set to `0` to enable wallet RPC commands                 |
-| `ENABLE_DOCKER_CONTROL` | `0`         | Set to `1` to enable start/stop/restart buttons          |
-| `ENABLE_LOG_VIEW`       | `0`         | Set to `1` to enable debug log viewer                    |
+| Variable                  | Default       | Description                                              |
+| ------------------------- | ------------- | -------------------------------------------------------- |
+| `RADIANT_RPC_USER`        | `radiantrpc`  | RPC username                                             |
+| `RADIANT_RPC_PASS`        | `change_me`   | RPC password (**change this!**)                          |
+| `RADIANT_UPNP`            | `0`           | Set to `1` for automatic port forwarding (inbound peers) |
+| `RADIANT_DISABLE_WALLET`  | `1`           | Set to `0` to enable wallet RPC commands                 |
+| `ENABLE_DOCKER_CONTROL`   | `0`           | Set to `1` to enable start/stop/restart buttons          |
+| `ENABLE_LOG_VIEW`         | `0`           | Set to `1` to enable debug log viewer                    |
 
 ---
 
@@ -110,12 +101,12 @@ To start/stop/restart the node from the UI:
 
 ## Ports
 
-| Port | Service                     |
-| ---- | --------------------------- |
-| 3000 | Web UI                      |
-| 3001 | Backend API                 |
-| 7895 | Avian P2P (blockchain sync) |
-| 7896 | Avian RPC (internal only)   |
+| Port | Service                        |
+| ---- | ------------------------------ |
+| 3000 | Web UI                         |
+| 3001 | Backend API                    |
+| 7333 | Radiant P2P (blockchain sync)  |
+| 7332 | Radiant RPC (internal only)    |
 
 ---
 
@@ -134,17 +125,17 @@ docker compose up --build -d
 
 **Node won't start?**
 
-- Check the `aviand` binary is the Linux version (not Windows `.exe`)
-- On Linux/macOS, ensure it's executable: `chmod +x ./aviand/aviand`
+- Check Docker is running and has internet access
+- Try rebuilding: `docker compose build --no-cache radiantd`
 
 **No inbound connections?**
 
-- Set `AVIAN_UPNP=1` in `.env` and restart
-- Or manually forward port `7895` on your router
+- Set `RADIANT_UPNP=1` in `.env` and restart
+- Or manually forward port `7333` on your router
 
 **RPC errors?**
 
-- Verify `AVIAN_RPC_PASS` matches in `.env`
+- Verify `RADIANT_RPC_PASS` matches in `.env`
 
 **Docker issues on Windows?**
 
@@ -155,7 +146,7 @@ docker compose up --build -d
 
 ## Discord Node Operator Roles
 
-Node operators can claim Discord roles based on uptime:
+Node operators can claim Discord roles based on uptime in the **Radiant Discord** (https://discord.gg/radiantblockchain):
 
 | Role                    | Requirement                  |
 | ----------------------- | ---------------------------- |
@@ -214,6 +205,7 @@ cd frontend && npm i && npm run dev
 
 ## Links
 
-- [Avian Network](https://avn.network)
-- [Avian Releases](https://github.com/AvianNetwork/Avian/releases)
-- [Avian GitHub](https://github.com/AvianNetwork/Avian)
+- [Radiant Blockchain](https://radiantblockchain.org)
+- [Radiant Node Releases](https://github.com/radiantblockchain/radiant-node/releases)
+- [Radiant GitHub](https://github.com/radiantblockchain)
+- [Radiant Discord](https://discord.gg/radiantblockchain)

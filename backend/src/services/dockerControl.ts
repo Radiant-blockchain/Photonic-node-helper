@@ -12,7 +12,7 @@ function enabled(): boolean {
 }
 
 function containerName(): string {
-  return process.env.AVIAN_CONTAINER_NAME ?? "aviand";
+  return process.env.RADIANT_CONTAINER_NAME ?? "radiantd";
 }
 
 async function dockerPost(path: string): Promise<void> {

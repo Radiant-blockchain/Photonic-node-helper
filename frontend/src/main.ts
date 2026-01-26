@@ -154,8 +154,8 @@ function render(status: NodeStatus) {
     <div class="container">
       <div class="header">
         <div class="brand">
-          <img class="logo" src="/avian-logo.png" alt="Avian" />
-          <div class="h1">Avian Node Helper</div>
+          <img class="logo" src="/radiant-logo.png" alt="Radiant" />
+          <div class="h1">Radiant Node Helper</div>
         </div>
         <div class="badge">
           <span class="dot ${dotClass}"></span>
@@ -201,28 +201,21 @@ function render(status: NodeStatus) {
           </div>
           <hr />
           <div class="btnrow">
-            <button id="btn-start" data-variant="primary" title="Start the aviand container">Start</button>
-            <button id="btn-stop" data-variant="danger" title="Stop the aviand container (stays stopped)">Stop</button>
-            <button id="btn-restart" data-variant="secondary" title="Restart the aviand container">Restart</button>
+            <button id="btn-start" data-variant="primary" title="Start the radiantd container">Start</button>
+            <button id="btn-stop" data-variant="danger" title="Stop the radiantd container (stays stopped)">Stop</button>
+            <button id="btn-restart" data-variant="secondary" title="Restart the radiantd container">Restart</button>
           </div>
           <div class="small" style="margin-top:8px;">
             Docker control requires socket mount + ENABLE_DOCKER_CONTROL=1
           </div>
         </div>
 
-        <div class="card">
-          <h2>Mining (X16RT)</h2>
+        <div class="card" style="grid-column: span 6;">
+          <h2>Mining (SHA512/256)</h2>
           <div class="kv">
-            <div class="k">Difficulty</div><div>${status.mining?.difficulty_x16rt?.toFixed(4) ?? "—"}</div>
-            <div class="k">Network Hash</div><div>${fmtHashrate(status.mining?.networkhashps_x16rt)}</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>Mining (MinotaurX)</h2>
-          <div class="kv">
-            <div class="k">Difficulty</div><div>${status.mining?.difficulty_minotaurx?.toFixed(6) ?? "—"}</div>
-            <div class="k">Network Hash</div><div>${fmtHashrate(status.mining?.networkhashps_minotaurx)}</div>
+            <div class="k">Difficulty</div><div>${status.mining?.difficulty?.toFixed(4) ?? "—"}</div>
+            <div class="k">Network Hash</div><div>${fmtHashrate(status.mining?.networkhashps)}</div>
+            <div class="k">Pooled Tx</div><div>${status.mining?.pooledtx?.toLocaleString() ?? "—"}</div>
           </div>
         </div>
 
@@ -382,7 +375,7 @@ function render(status: NodeStatus) {
   async function bindBtn(id: string, action: Parameters<typeof control>[0]) {
     el.querySelector<HTMLButtonElement>(id)!.onclick = async () => {
       const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
-      toast(`${actionLabel}ing aviand...`, 'info', 2000);
+      toast(`${actionLabel}ing radiantd...`, 'info', 2000);
       try {
         await control(action);
         toast(`${actionLabel} successful`, 'success');
@@ -475,9 +468,9 @@ function render(status: NodeStatus) {
             if (statusEl) statusEl.innerHTML = `<span style="color: var(--accent);">✓ Node Operator</span>`;
             toast("You have the Node Operator role! Elite unlocks at 90 days.", "success");
           } else if (roleCheck.inServer) {
-            toast("You're in the Discord server — claim your role when eligible!", "info");
+            toast("You're in the Radiant Discord — claim your role when eligible!", "info");
           } else {
-            toast("Join the Avian Discord server to claim your roles!", "info");
+            toast("Join the Radiant Discord server to claim your roles!", "info");
           }
         }).catch(() => {
           // Ignore errors, fall back to eligibility check
@@ -589,7 +582,7 @@ function render(status: NodeStatus) {
             return;
           }
           if (!roleCheck.inServer) {
-            toast("You must join the Avian Discord server first", "error");
+            toast("You must join the Radiant Discord server first", "error");
             return;
           }
         } catch {

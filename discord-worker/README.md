@@ -1,6 +1,8 @@
-# Avian Node Operator Discord Verification Worker
+# Radiant Node Operator Discord Verification Worker
 
-A Cloudflare Worker that verifies node operators and assigns Discord roles.
+A Cloudflare Worker that verifies Radiant node operators and assigns Discord roles.
+
+**Discord Server:** https://discord.gg/radiantblockchain
 
 ## Roles
 
@@ -16,7 +18,7 @@ Users accumulate both roles as they progress.
 ### 1. Create Discord Bot
 
 1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Click "New Application" → Name it "Avian Node Verifier"
+2. Click "New Application" → Name it "Radiant Node Verifier"
 3. Go to "Bot" tab → Click "Add Bot"
 4. Copy the **Bot Token** (keep this secret!)
 5. Under "Privileged Gateway Intents", enable **Server Members Intent**
@@ -58,7 +60,7 @@ wrangler secret put DISCORD_BOT_TOKEN
 # Paste your bot token
 
 wrangler secret put DISCORD_GUILD_ID
-# Enter your server ID (e.g., 904209882947932160)
+# Enter your Radiant Discord server ID
 
 wrangler secret put DISCORD_ROLE_ID
 # Paste the "Node Operator" role ID
@@ -78,7 +80,7 @@ wrangler deploy
 Add to your `.env` file:
 
 ```env
-DISCORD_VERIFY_URL=https://avian-node-verify.<your-account>.workers.dev/verify
+DISCORD_VERIFY_URL=https://radiant-node-verify.<your-account>.workers.dev/verify
 DISCORD_VERIFY_SECRET=<same secret from step 3>
 ```
 
@@ -88,7 +90,7 @@ In Cloudflare dashboard:
 
 1. Go to Workers & Pages → your worker
 2. Settings → Triggers → Custom Domains
-3. Add `verify.avn.network` (or whatever subdomain)
+3. Add `verify.radiantblockchain.org` (or whatever subdomain)
 
 ## API
 
@@ -139,7 +141,7 @@ Verifies a node and assigns the Discord role.
 - Node must be **fully synced** (blocks ≥ headers - 1)
 - Node must have **7+ days uptime** for Node Operator role
 - Node must have **90+ days uptime** for Elite Node Operator role
-- User must be a **member of the Discord server**
+- User must be a **member of the Radiant Discord server** (discord.gg/radiantblockchain)
 - Request must be signed with the shared secret
 
 > 💡 At 90 days, users automatically receive both roles if they don't already have them!

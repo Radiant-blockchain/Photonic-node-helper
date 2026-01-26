@@ -1,10 +1,10 @@
-name = "avian-node-verify"
+name = "radiant-node-verify"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
-# Custom domain (avn.network must be managed in this Cloudflare account)
+# Custom domain (radiantblockchain.org must be managed in this Cloudflare account)
 routes = [
-  { pattern = "verify.avn.network", custom_domain = true }
+  { pattern = "verify.radiantblockchain.org", custom_domain = true }
 ]
 
 # Secrets (set via `wrangler secret put <NAME>`):

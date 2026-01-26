@@ -8,7 +8,7 @@ function isEnabled(): boolean {
 }
 
 function logPath(): string {
-    return process.env.AVIAND_DEBUG_LOG_PATH ?? "/data/debug.log";
+    return process.env.RADIANTD_DEBUG_LOG_PATH ?? "/data/debug.log";
 }
 
 function parseIntParam(v: unknown, fallback: number): number {

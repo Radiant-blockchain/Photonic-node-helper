@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { dockerRestart, dockerStart, dockerStop } from "../services/dockerControl.js";
-import { AvianRpcClient } from "../rpc/avianRpc.js";
+import { RadiantRpcClient } from "../rpc/radiantRpc.js";
 
 export function controlRouter() {
   const r = Router();
@@ -31,7 +31,7 @@ export function controlRouter() {
   // RPC stop (works even without docker control, but requires RPC reachable)
   r.post("/rpc-stop", async (_req, res, next) => {
     try {
-      const rpc = new AvianRpcClient();
+      const rpc = new RadiantRpcClient();
       await rpc.call("stop", []);
       res.json({ ok: true });
     } catch (e) { next(e); }

@@ -6,11 +6,11 @@ function requiredEnv(name: string): string {
   return v;
 }
 
-export class AvianRpcClient {
-  private host = process.env.AVIAN_RPC_HOST ?? "127.0.0.1";
-  private port = Number(process.env.AVIAN_RPC_PORT ?? "8766");
-  private user = requiredEnv("AVIAN_RPC_USER");
-  private pass = requiredEnv("AVIAN_RPC_PASS");
+export class RadiantRpcClient {
+  private host = process.env.RADIANT_RPC_HOST ?? "127.0.0.1";
+  private port = Number(process.env.RADIANT_RPC_PORT ?? "7332");
+  private user = requiredEnv("RADIANT_RPC_USER");
+  private pass = requiredEnv("RADIANT_RPC_PASS");
 
   private get url(): string {
     return `http://${this.host}:${this.port}/`;
@@ -19,7 +19,7 @@ export class AvianRpcClient {
   async call<T = unknown>(method: string, params: unknown[] = []): Promise<T> {
     const req: JsonRpcRequest = {
       jsonrpc: "1.0",
-      id: "avian-node-helper",
+      id: "radiant-node-helper",
       method,
       params
     };

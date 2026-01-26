@@ -8,7 +8,7 @@ import { rpcRouter } from "./routes/rpc.js";
 import { controlRouter } from "./routes/control.js";
 import { logsRouter } from "./routes/logs.js";
 import { discordRouter } from "./routes/discord.js";
-import { AvianRpcClient } from "./rpc/avianRpc.js";
+import { RadiantRpcClient } from "./rpc/radiantRpc.js";
 
 export function buildApp() {
   const app = express();
@@ -24,7 +24,7 @@ export function buildApp() {
   // Health check endpoint for container orchestration
   app.get("/healthz", async (_req, res) => {
     try {
-      const rpc = new AvianRpcClient();
+      const rpc = new RadiantRpcClient();
       const info = await rpc.call<any>("getblockchaininfo");
       const synced = info?.headers > 0 && info?.blocks >= info?.headers - 1;
       res.json({

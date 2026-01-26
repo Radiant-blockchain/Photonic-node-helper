@@ -1,13 +1,14 @@
 /**
- * Avian Node Operator Verification Worker
+ * Radiant Node Operator Verification Worker
  *
  * Deploy to Cloudflare Workers. Set these secrets:
  *   - DISCORD_BOT_TOKEN: Your Discord bot token
- *   - DISCORD_GUILD_ID: 904209882947932160
+ *   - DISCORD_GUILD_ID: Your Radiant Discord server ID
  *   - DISCORD_ROLE_ID: The "Node Operator" role ID (7 days)
  *   - DISCORD_ROLE_ID_ELITE: The "Elite Node Operator" role ID (90 days)
  *   - VERIFY_SECRET: A shared secret for HMAC verification
  *
+ * Discord: https://discord.gg/radiantblockchain
  * Endpoint: POST /verify
  */
 
@@ -34,7 +35,7 @@ export default {
     }
 
     if (url.pathname === "/status" && request.method === "GET") {
-      return jsonResponse({ ok: true, service: "avian-node-verify" });
+      return jsonResponse({ ok: true, service: "radiant-node-verify" });
     }
 
     return jsonResponse({ error: "not_found" }, 404);
@@ -153,7 +154,7 @@ async function handleVerify(request, env) {
         {
           error: "user_not_found",
           message:
-            "User not found in Discord server. Make sure you've joined the Avian Discord.",
+            "User not found in Discord server. Make sure you've joined the Radiant Discord (discord.gg/radiantblockchain).",
         },
         404,
       );
@@ -284,7 +285,7 @@ async function assignDiscordRole(env, userId, roleId) {
     return {
       success: false,
       message:
-        "User not found in Discord server. Make sure you've joined the Avian Discord.",
+        "User not found in Discord server. Make sure you've joined the Radiant Discord (discord.gg/radiantblockchain).",
     };
   }
   if (response.status === 403) {

@@ -1,4 +1,4 @@
-import { AvianRpcClient } from "../rpc/avianRpc.js";
+import { RadiantRpcClient } from "../rpc/radiantRpc.js";
 
 export type NodeStatus = {
   chain?: {
@@ -27,16 +27,14 @@ export type NodeStatus = {
   };
   mining?: {
     blocks: number;
-    difficulty_x16rt: number;
-    difficulty_minotaurx: number;
-    networkhashps_x16rt: number;
-    networkhashps_minotaurx: number;
+    difficulty: number;
+    networkhashps: number;
     pooledtx: number;
   };
   uptime?: number;
 };
 
-export async function getNodeStatus(rpc = new AvianRpcClient()): Promise<NodeStatus> {
+export async function getNodeStatus(rpc = new RadiantRpcClient()): Promise<NodeStatus> {
   const [chain, network, peers, mining, uptime] = await Promise.all([
     rpc.call<any>("getblockchaininfo"),
     rpc.call<any>("getnetworkinfo"),
@@ -75,10 +73,8 @@ export async function getNodeStatus(rpc = new AvianRpcClient()): Promise<NodeSta
     },
     mining: mining ? {
       blocks: mining.blocks,
-      difficulty_x16rt: mining.difficulty_x16rt,
-      difficulty_minotaurx: mining.difficulty_minotaurx,
-      networkhashps_x16rt: mining.networkhashps_x16rt,
-      networkhashps_minotaurx: mining.networkhashps_minotaurx,
+      difficulty: mining.difficulty,
+      networkhashps: mining.networkhashps,
       pooledtx: mining.pooledtx
     } : undefined,
     uptime

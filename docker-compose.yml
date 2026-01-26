@@ -1,48 +1,48 @@
 services:
-  aviand:
-    # Build from local ./aviand folder.
-    # Place a Linux "aviand" binary at ./aviand/aviand (relative to repo root).
-    build: ./aviand
-    image: avian/aviand:local
-    container_name: aviand
+  radiantd:
+    # Downloads Radiant Core v2.0.0 from GitHub releases during build
+    build: ./radiantd
+    image: radiant-core:v2.0.0
+    container_name: radiantd
     restart: unless-stopped
-    # Give aviand enough time to flush databases on shutdown (default is 10s)
+    # Give radiantd enough time to flush databases on shutdown (default is 10s)
     stop_grace_period: 60s
     env_file: .env
     command: >-
-      -datadir=/data
+      radiantd
+      -datadir=/home/radiant/.radiant
       -server=1
       -listen=1
       -txindex=1
-      -upnp=${AVIAN_UPNP:-0}
-      -disablewallet=${AVIAN_DISABLE_WALLET:-1}
+      -upnp=${RADIANT_UPNP:-0}
+      -disablewallet=${RADIANT_DISABLE_WALLET:-1}
       -rpcbind=0.0.0.0
       -rpcallowip=0.0.0.0/0
-      -rpcuser=${AVIAN_RPC_USER:-avianrpc}
-      -rpcpassword=${AVIAN_RPC_PASS:-change_me}
-      -rpcport=${AVIAN_RPC_PORT:-7896}
+      -rpcuser=${RADIANT_RPC_USER:-radiantrpc}
+      -rpcpassword=${RADIANT_RPC_PASS:-change_me}
+      -rpcport=${RADIANT_RPC_PORT:-7332}
     volumes:
-      - ./data:/data
+      - ./data:/home/radiant/.radiant
     ports:
       # P2P
-      - "7895:7895"
+      - "7333:7333"
       # RPC - NOT exposed externally for security.
       # Backend connects via Docker internal network.
       # Uncomment only if you need direct RPC access from host:
-      # - "127.0.0.1:7896:7896"
+      # - "127.0.0.1:7332:7332"
 
   backend:
     build: ./backend
-    container_name: avian-node-helper-backend
+    container_name: radiant-node-helper-backend
     restart: unless-stopped
     env_file: .env
     environment:
-      # Backend should talk to container name "aviand"
-      - AVIAN_RPC_HOST=aviand
+      # Backend should talk to container name "radiantd"
+      - RADIANT_RPC_HOST=radiantd
     ports:
       - "3001:3001"
     depends_on:
-      - aviand
+      - radiantd
     volumes:
       - ./scripts:/app/scripts:ro
       # OPTIONAL: allow backend to read the node's debug.log
@@ -55,7 +55,7 @@ services:
       context: ./frontend
       args:
         VITE_API_BASE: http://localhost:3001
-    container_name: avian-node-helper-frontend
+    container_name: radiant-node-helper-frontend
     restart: unless-stopped
     ports:
       - "3000:80"

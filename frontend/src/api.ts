@@ -18,10 +18,8 @@ export type NodeStatus = {
   peers?: { count: number; inbound: number; outbound: number };
   mining?: {
     blocks: number;
-    difficulty_x16rt: number;
-    difficulty_minotaurx: number;
-    networkhashps_x16rt: number;
-    networkhashps_minotaurx: number;
+    difficulty: number;
+    networkhashps: number;
     pooledtx: number;
   };
   uptime?: number;
