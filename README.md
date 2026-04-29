@@ -54,7 +54,7 @@ RADIANT_RPC_PASS=your_secure_password_here
 docker compose up --build -d
 ```
 
-> First build downloads Radiant Core v2.1.0 from GitHub releases (~1-2 min).
+> First build downloads Radiant Core v2.3.0 from GitHub releases (~1-2 min).
 
 ### 3. Open the UI
 

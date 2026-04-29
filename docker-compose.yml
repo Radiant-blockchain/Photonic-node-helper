@@ -1,8 +1,8 @@
 services:
   radiantd:
-    # Downloads Radiant Core v2.1.0 from GitHub releases during build
+    # Downloads Radiant Core v2.3.0 from GitHub releases during build
     build: ./radiantd
-    image: radiant-core:v2.1.0
+    image: radiant-core:v2.3.0
     container_name: radiantd
     restart: unless-stopped
     # Give radiantd enough time to flush databases on shutdown (default is 10s)

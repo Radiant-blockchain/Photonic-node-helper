@@ -1,9 +1,9 @@
-# Radiant Core v2.1.0 - Downloads pre-built binary from GitHub releases
+# Radiant Core v2.3.0 - Downloads pre-built binary from GitHub releases
 # No local binary required - fetches official release automatically
 
 FROM ubuntu:22.04
 
-ARG RADIANT_VERSION=v2.1.0
+ARG RADIANT_VERSION=v2.3.0
 ARG RADIANT_RELEASE_URL=https://github.com/Radiant-Core/Radiant-Core/releases/download/${RADIANT_VERSION}/radiant-core-linux-x64-${RADIANT_VERSION}.tar.gz
 
 # Install runtime dependencies
