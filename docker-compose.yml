@@ -1,13 +1,19 @@
 services:
   radiantd:
-    # Downloads Radiant Core v2.3.0 from GitHub releases during build
+    # Downloads the pinned Radiant Core release from GitHub during build
+    # (radiantd/Dockerfile sets ARG RADIANT_VERSION=v3.1.2).
     build: ./radiantd
-    image: radiant-core:v2.3.0
+    image: radiant-core:v3.1.2
     container_name: radiantd
     restart: unless-stopped
     # Give radiantd enough time to flush databases on shutdown (default is 10s)
     stop_grace_period: 60s
     env_file: .env
+    # The backend reaches radiantd by container name (RADIANT_RPC_HOST=radiantd),
+    # so that Host must be allowlisted with -rpcallowhost below — without it,
+    # radiantd v3.1.0+ replies 403 Forbidden to the backend's RPC calls.
+    # NOTE: put ONLY flag tokens inside the folded `command: >-` scalar below — a
+    # `#` there is literal data, not a comment, and would corrupt the arg list.
     command: >-
       radiantd
       -datadir=/home/radiant/.radiant
@@ -18,8 +24,9 @@ services:
       -disablewallet=${RADIANT_DISABLE_WALLET:-1}
       -rpcbind=0.0.0.0
       -rpcallowip=0.0.0.0/0
+      -rpcallowhost=radiantd
       -rpcuser=${RADIANT_RPC_USER:-radiantrpc}
-      -rpcpassword=${RADIANT_RPC_PASS:-change_me}
+      -rpcpassword=${RADIANT_RPC_PASS:?set a strong RADIANT_RPC_PASS (e.g. openssl rand -hex 32) in .env}
       -rpcport=${RADIANT_RPC_PORT:-7332}
     volumes:
       - ./data:/home/radiant/.radiant
